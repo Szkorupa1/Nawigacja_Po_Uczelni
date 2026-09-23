@@ -1,0 +1,1557 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Panel Admina - Nawigacja</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #333;
+    }
+    .edit-connection-picker {
+    margin-top: 35px;
+    }
+
+    .container { max-width: 1200px; margin: 0 auto; }
+    .header {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+    .header h1 { font-size: 32px; margin-bottom: 5px; }
+    .header p { color: #666; }
+    nav {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    nav button {
+      flex: 1; min-width: 180px;
+      padding: 16px 24px;
+      border: none;
+      border-radius: 12px;
+      background: white;
+      color: #667eea;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      /* POPRAWKA: wyłącz zaznaczanie tekstu przy długim kliknięciu */
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    nav button:hover, nav button.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    /* Blokuj zmianę wyglądu przy długim przytrzymaniu palcem/myszą */
+    nav button:active:not(.active) {
+      background: rgba(255,255,255,0.85);
+      color: #667eea;
+    }
+    section {
+      display: none;
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+    section.active { display: block; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    label { display: block; margin-bottom: 8px; font-weight: 600; }
+    input, select, textarea { width: 100%; padding: 10px; margin-bottom: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-family: inherit; }
+    button[type="submit"] { width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; font-size: 18px; font-weight: 600; cursor: pointer; }
+    .response { margin-top: 15px; padding: 10px; border-radius: 8px; white-space: pre-wrap; font-family: monospace; display: none; }
+    .response.show { display: block; }
+    .response.success { background: #d4edda; color: #155724; }
+    .response.error { background: #f8d7da; color: #721c24; }
+    fieldset { margin-top: 10px; padding: 10px; border-radius: 8px; border: 1px solid #ddd; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; }
+    th { background: #667eea; color: white; }
+
+    /* Ograniczenie szerokości formularzy */
+section:not(#graphSection) form {
+  max-width: 500px;
+  margin: 0 auto;
+  background: #fafafa;
+  padding: 25px 30px;
+  border-radius: 16px;
+  box-shadow: 0 6px 25px rgba(0,0,0,0.08);
+}
+
+
+
+/* Pola formularza mniejsze i spójne */
+section:not(#graphSection) input, section:not(#graphSection) select, section:not(#graphSection) textarea {
+  width: 100%;
+  max-width: 100%;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  border: 1.5px solid #ccc;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: all 0.2s;
+}
+
+/* Efekt focus */
+section:not(#graphSection) input:focus, section:not(#graphSection) select:focus, section:not(#graphSection) textarea:focus {
+  border-color: #667eea;
+  outline: none;
+  box-shadow: 0 0 5px rgba(102,126,234,0.4);
+}
+
+ 
+section:not(#graphSection) fieldset {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 12px 15px;
+  margin-bottom: 15px;
+  background: #fff;
+}
+section:not(#graphSection) legend {
+  padding: 0 8px;
+  color: #667eea;
+  font-weight: 600;
+}
+
+
+section:not(#graphSection) button[type="submit"] {
+  width: 100%;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: white;
+  font-size: 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+section:not(#graphSection) button[type="submit"]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(102,126,234,0.4);
+}
+
+/* Ograniczenie szerokości sekcji */
+ section {
+  max-width: 800px;
+  margin: 0 auto;
+}
+/*  Stylizacja formularzy, bez wpływu na wizualizację grafu  */
+section:not(#graphView) form {
+  max-width: 500px;
+  margin: 0 auto;
+  background: #fafafa;
+  padding: 25px 30px;
+  border-radius: 16px;
+  box-shadow: 0 6px 25px rgba(0,0,0,0.08);
+}
+
+/* Pola formularza */
+section:not(#graphView) input,
+section:not(#graphView) select,
+section:not(#graphView) textarea {
+  width: 100%;
+  max-width: 100%;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  border: 1.5px solid #ccc;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: all 0.2s;
+}
+
+/* Efekt focus */
+section:not(#graphView) input:focus,
+section:not(#graphView) select:focus,
+section:not(#graphView) textarea:focus {
+  border-color: #667eea;
+  outline: none;
+  box-shadow: 0 0 5px rgba(102,126,234,0.4);
+}
+
+/* Fieldsety i legendy */
+section:not(#graphView) fieldset {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 12px 15px 8px;
+  margin-bottom: 15px;
+  background: #fff;
+}
+section:not(#graphView) legend {
+  padding: 0 8px;
+  color: #667eea;
+  font-weight: 600;
+}
+
+/* Stylizacja checkboxów */
+section:not(#graphView) fieldset label,
+section:not(#graphView) .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px; 
+  margin-bottom: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+}
+
+section:not(#graphView) input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #667eea; 
+  cursor: pointer;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+/* Przyciski */
+section:not(#graphView) button[type="submit"] {
+  width: 100%;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: white;
+  font-size: 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+section:not(#graphView) button[type="submit"]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(102,126,234,0.4);
+}
+
+
+.custom-select {
+  position: relative;
+  width: 100%;
+}
+.custom-select input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1.5px solid #ccc;
+  border-radius: 8px;
+  font-size: 15px;
+}
+.custom-select .options {
+  position: absolute;
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  background: white;
+  border: 1.5px solid #ccc;
+  border-radius: 8px;
+  margin-top: 2px;
+  display: none;
+  z-index: 100;
+}
+.custom-select .option {
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.custom-select .option:hover {
+  background: #f0f0f0;
+}
+
+/* POPRAWKA: checkbox zablokowany po wyborze kierunkowego */
+input[type="checkbox"].instr-disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+label.instr-disabled-label {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+  </style>
+</head>
+<body>
+
+
+  <nav>
+    <button onclick="show('addRoom')" class="active"> Dodaj pokój</button>
+    <button onclick="show('addConnection')"> Dodaj połączenie</button>
+    <button onclick="show('multiStairsElevator')">Dodaj ciąg schodów/wind</button>
+    <button onclick="show('editConnection')"> Edytuj połączenie</button>
+    <button onclick="show('manageRooms')"> Zarządzaj pokojami</button>
+    <button onclick="show('graphView')"> Wizualizacja grafu</button>
+    <button onclick="show('reportsView')" id="reportsNavBtn"> Zgłoszenia <span id="reportsbadge" style="display:none;background:#e74c3c;color:white;border-radius:10px;padding:1px 7px;font-size:12px;margin-left:4px;">0</span></button>
+    <button onclick="location.href='/admin/logout'" style="background: linear-gradient(135deg, #e97a6e 0%, #ca6256 100%);"> Wyloguj</button>
+  </nav>
+
+  <!-- Dodaj pokój -->
+  <section id="addRoom" class="active">
+    <h2>Dodaj nowy pokój</h2>
+    <form id="roomForm" enctype="multipart/form-data">
+      <label>Nazwa pokoju</label>
+      <input type="text" name="name" required>
+      <label>Piętro</label>
+      <input type="text" name="floor">
+      <label>Typ węzła</label>
+      <select name="type" required>
+        <option value="room">Pokój</option>
+        <option value="exit">Wyjście</option>
+         <option value="external">Przejście zewnętrzne</option>
+      </select>
+      <label>Połącz z poprzednim pokojem</label>
+      <div class="custom-select room-select" data-source="/rooms_active">
+      <input type="text" name="neighbor" id="neighborSelect" placeholder="Szukaj pokoju..." required>
+    <div class="options"></div>
+    </div>
+      <!-- POPRAWKA: jednostki ujednolicone jako [m] -->
+      <label>Dystans [m]</label>
+      <input type="number" name="distance" required min="0">
+    
+
+      <fieldset>
+        <legend>Instrukcja w kierunku dodawanego pokoju</legend>
+        <!-- POPRAWKA: wzajemne wykluczanie skrętów -->
+        <label><input type="checkbox" name="instructions" class="instr-straight" value="idź prosto"> Idź prosto</label>
+        <label><input type="checkbox" name="instructions" class="instr-turn-left" value="skręć w lewo"> Skręć w lewo</label>
+        <label><input type="checkbox" name="instructions" class="instr-turn-right" value="skręć w prawo"> Skręć w prawo</label>
+      </fieldset>
+      <label>Instrukcja niestandardowa</label>
+      <input type="text" name="custom_instruction">
+      <label>Zdjęcie od poprzedniego pokoju w stronę dodawanego pokoju</label>
+        <input type="file" name="image_ba" accept="image/*">
+      <label>Zdjęcie w przeciwnym kierunku</label>
+        <input type="file" name="image_ab" accept="image/*">
+
+      <button type="submit"> Dodaj pokój i połączenie</button>
+    </form>
+    <div id="roomResp" class="response"></div>
+  </section>
+
+  <!-- Dodaj połączenie -->
+  <section id="addConnection">
+    <h2>Dodaj połączenie</h2>
+    <form id="connectionForm" enctype="multipart/form-data">
+      <label>Od pokoju</label>
+        <div class="custom-select room-select" data-source="/rooms_active">
+          <input type="text" name="from_room" placeholder="Szukaj pokoju..." required>
+        <div class="options"></div>
+    </div>
+      <label>Do pokoju</label>
+        <div class="custom-select room-select" data-source="/rooms_active">
+          <input type="text" name="to_room" placeholder="Szukaj pokoju..." required>
+        <div class="options"></div>
+      </div>
+
+      <!-- POPRAWKA: jednostki [m] i [s] -->
+      <label>Dystans [m]</label>
+      <input type="number" name="distance" required min="0">
+      <label>Dodatkowy czas [s]</label>
+      <input type="number" name="extra_time" value="0" min="0">
+
+      <fieldset>
+        <legend>Instrukcje od pierwszego pokoju do drugiego</legend>
+        <label><input type="checkbox" name="instructions" class="instr-straight" value="idź prosto"> Idź prosto</label>
+        <label><input type="checkbox" name="instructions" class="instr-turn-left" value="skręć w lewo"> Skręć w lewo</label>
+        <label><input type="checkbox" name="instructions" class="instr-turn-right" value="skręć w prawo"> Skręć w prawo</label>
+      </fieldset>
+      <label>Instrukcja niestandardowa</label>
+      <input type="text" name="custom_instruction">
+      <label>Status połączenia</label>
+      <select name="status">
+        <option value="Aktywny">Aktywny</option>
+        <option value="Nieaktywny">Nieaktywny</option>
+      </select>
+      <label>Zdjęcie od pierwszego pokoju do drugiego</label>
+        <input type="file" name="image_ab" accept="image/*">
+      <label>Zdjęcie w przeciwnym kierunku</label>
+        <input type="file" name="image_ba" accept="image/*">
+
+      <button type="submit"> Dodaj połączenie</button>
+    </form>
+    <div id="connResp" class="response"></div>
+  </section>
+
+  <!-- Edycja połączenia -->
+   <section id="editConnection">
+  <h2>Edytuj połączenie</h2>
+  
+  <div class="edit-connection-picker"></div>
+  <label>Wybierz połączenie</label>
+  <div class="custom-select connection-select" data-source="/connections">
+    <input type="text" id="connectionSelect" placeholder="Szukaj połączenia..." autocomplete="off">
+    <div class="options"></div>
+  </div>
+
+  <form id="editConnForm" enctype="multipart/form-data" style="margin-top:0px;">
+    <label>Od (pokój)</label>
+    <div class="custom-select room-select" data-source="/rooms_active">
+      <input type="text" name="from_room" id="editFrom" placeholder="Szukaj pokoju..." required>
+      <div class="options"></div>
+    </div>
+    
+    <label>Do (pokój)</label>
+    <div class="custom-select room-select" data-source="/rooms_active">
+      <input type="text" name="to_room" id="editTo" placeholder="Szukaj pokoju..." required>
+      <div class="options"></div>
+    </div>
+    
+    <!-- POPRAWKA: jednostki [m] i [s] -->
+    <label>Dystans [m]</label>
+    <input type="number" id="editDistance" name="distance">
+    
+    <label>Dodatkowy czas [s]</label>
+    <input type="number" id="editExtra" name="extra_time">
+    
+    <fieldset>
+      <legend>Instrukcje od pierwszego pokoju do drugiego</legend>
+      <label><input type="checkbox" name="instructions" class="editInstr instr-straight" value="idź prosto"> Idź prosto</label>
+      <label><input type="checkbox" name="instructions" class="editInstr instr-turn-left" value="skręć w lewo"> Skręć w lewo</label>
+      <label><input type="checkbox" name="instructions" class="editInstr instr-turn-right" value="skręć w prawo"> Skręć w prawo</label>
+    </fieldset>
+    
+    <label>Instrukcja niestandardowa</label>
+    <input type="text" id="editCustom" name="custom_instruction">
+    
+    <label>Status</label>
+    <select id="editStatus" name="status">
+      <option value="Aktywny">Aktywny</option>
+      <option value="Nieaktywny">Nieaktywny</option>
+    </select>
+    
+    <label>Zdjęcie od pierwszego pokoju do drugiego</label>
+    <input type="file" name="image_ab" accept="image/*">
+    
+    <label>Zdjęcie w przeciwnym kierunku</label>
+    <input type="file" name="image_ba" accept="image/*">
+
+    <input type="hidden" id="editConnId" name="id">
+    <button type="submit">Zapisz zmiany</button>
+  </form>
+  
+  <div id="editResp" class="response"></div>
+</section>
+
+ 
+<section id="multiStairsElevator">
+  <h2>Dodaj ciąg schodów lub wind</h2>
+  <form id="multiForm">
+      
+    <label>Typ</label>
+    <select name="type" id="connectionType" required>
+      <option value="stairs">Schody</option>
+      <option value="elevator">Winda</option>
+    </select>
+
+    <label>Nazwa bazowa</label>
+    <input type="text" name="base" placeholder="np. Schody Główne" required>
+
+    <label>Od piętra</label>
+    <input type="number" name="start_floor" value="0" min="0" required>
+
+    <label>Do piętra</label>
+    <input type="number" name="end_floor" value="3" min="0" required>
+
+    <!-- POPRAWKA: jednostka [m] -->
+    <label>Dystans między piętrami [m]</label>
+    <input type="number" name="stairs_distance" value="5" min="1" required>
+
+    <!-- POPRAWKA: usunięto pole "Dystans korytarz ↔ schody" — hardcode 2 m w backendzie -->
+
+    <div id="elevatorTimeField" style="display: none;">
+      <!-- POPRAWKA: jednostka [s] -->
+      <label>Czas oczekiwania na windę [s]</label>
+      <input type="number" name="extra_time" value="0" min="0">
+    </div>
+
+    <label>Połącz najniższe piętro z pokojem</label>
+     <div class="custom-select room-select" data-source="/rooms_active">
+      <input type="text" name="to_room" id="multiToRoom" placeholder="Szukaj pokoju..." required>
+      <div class="options"></div>
+    </div>
+
+    <!-- Ukryte pole z hardcoded wartością korytarza -->
+    <input type="hidden" name="corridor_distance" value="2">
+
+    <button type="submit">Dodaj</button>
+  </form>
+
+  <div id="multiResp" class="response"></div>
+</section>
+
+<script>
+document.getElementById('connectionType').addEventListener('change', function() {
+  const elevatorField = document.getElementById('elevatorTimeField');
+  if (this.value === 'elevator') {
+    elevatorField.style.display = 'block';
+  } else {
+    elevatorField.style.display = 'none';
+  }
+});
+</script>
+  
+  <section id="manageRooms">
+   <h2>Zarządzaj pokojami</h2>
+<div id="manageResp"></div>
+
+<table id="roomsTable">
+  <thead>
+    <tr>
+      <th>Nazwa / Typ</th>
+      <th>Piętro</th>
+      <th>Aktywny</th>
+      <th>Nieaktywny</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<style>
+  #roomsTable {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  #roomsTable th, #roomsTable td {
+    border: 1px solid #ccc;
+    padding: 6px;
+  }
+  .row-flash-green {
+    background-color: #d2ffd2;
+    transition: background-color 1s ease;
+  }
+  .row-flash-red {
+    background-color: #ffd2d2;
+    transition: background-color 1s ease;
+  }
+</style>
+
+  </section>
+
+ 
+
+<!-- ===== ZGŁOSZENIA ===== -->
+<section id="reportsView">
+  <h2 style="margin-bottom:18px;">Zgłoszenia użytkowników</h2>
+
+  <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+    <button onclick="loadReports(false)" id="btnAll"
+      style="padding:8px 18px;border:2px solid #667eea;border-radius:8px;background:#667eea;color:white;font-weight:600;cursor:pointer;">
+      Wszystkie
+    </button>
+    <button onclick="loadReports(true)" id="btnUnread"
+      style="padding:8px 18px;border:2px solid #667eea;border-radius:8px;background:white;color:#667eea;font-weight:600;cursor:pointer;">
+      Nieprzeczytane
+    </button>
+  </div>
+
+  <div id="reportsList" style="display:flex;flex-direction:column;gap:12px;"></div>
+</section>
+
+<style>
+.report-card {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 16px 18px;
+  border-left: 4px solid #667eea;
+  position: relative;
+}
+.report-card.unread { border-left-color: #e74c3c; background: #fff5f5; }
+.report-card.read   { border-left-color: #ccc; opacity: 0.75; }
+.report-card-meta { font-size: 12px; color: #999; margin-bottom: 6px; }
+.report-card-route { font-size: 13px; color: #667eea; font-weight: 600; margin-bottom: 6px; }
+.report-card-msg { font-size: 15px; color: #333; white-space: pre-wrap; word-break: break-word; }
+.report-card-actions { display:flex; gap:8px; margin-top:12px; }
+.report-btn-read {
+  padding: 5px 14px; font-size: 13px; border-radius: 7px;
+  border: 1.5px solid #28a745; color: #28a745;
+  background: white; cursor: pointer; font-weight: 600;
+}
+.report-btn-read:hover { background: #28a745; color: white; }
+.report-btn-del {
+  padding: 5px 14px; font-size: 13px; border-radius: 7px;
+  border: 1.5px solid #e74c3c; color: #e74c3c;
+  background: white; cursor: pointer; font-weight: 600;
+}
+.report-btn-del:hover { background: #e74c3c; color: white; }
+</style>
+
+<section id="graphView" style="max-width: 100%; padding: 15px;">
+  <h2 style="margin-bottom: 15px;">Wizualizacja grafu</h2>
+  
+ 
+  <div style="max-width: 400px; margin-bottom: 20px;">
+    <label style="display: block; margin-bottom: 8px; font-weight: 600;">Filtruj piętro:</label>
+    <select id="floorFilter" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px;">
+      <option value="all">Wszystkie</option>
+    </select>
+  </div>
+
+  <div id="graphContainer" style="width: 100%; height: calc(100vh - 250px); border: 1px solid #ddd; border-radius: 12px;"></div>
+</section>
+
+
+<script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+<link href="https://unpkg.com/vis-network/styles/vis-network.min.css" rel="stylesheet" type="text/css" />
+</div>
+
+<script>
+// ========== HELPER FUNCTIONS ==========
+// "idź prosto" wyklucza skręty i odwrotnie; lewy i prawy wzajemnie się wykluczają
+function setupInstructionCheckboxes(container) {
+  const straight = [...container.querySelectorAll('.instr-straight')];
+  const left     = [...container.querySelectorAll('.instr-turn-left')];
+  const right    = [...container.querySelectorAll('.instr-turn-right')];
+
+  if (!straight.length && !left.length && !right.length) return;
+
+  function setDisabled(checkboxes, disabled) {
+    checkboxes.forEach(cb => {
+      cb.disabled = disabled;
+      const lbl = cb.closest('label');
+      if (lbl) lbl.classList.toggle('instr-disabled-label', disabled);
+    });
+  }
+
+  function update() {
+    // Odczytaj stan PO zmianie (cb.checked jest już zaktualizowane)
+    const isStraight = straight.some(cb => cb.checked);
+    const isLeft     = left.some(cb => cb.checked);
+    const isRight    = right.some(cb => cb.checked);
+
+    if (isStraight) {
+      // prosto zaznaczone → zablokuj i odznacz skręty
+      setDisabled(left,  true);
+      setDisabled(right, true);
+      setDisabled(straight, false);
+      left.forEach(cb  => cb.checked = false);
+      right.forEach(cb => cb.checked = false);
+    } else if (isLeft) {
+      // lewy skręt → zablokuj prawy i prosto
+      setDisabled(straight, true);
+      setDisabled(right,    true);
+      setDisabled(left,     false);
+      straight.forEach(cb => cb.checked = false);
+      right.forEach(cb    => cb.checked = false);
+    } else if (isRight) {
+      // prawy skręt → zablokuj lewy i prosto
+      setDisabled(straight, true);
+      setDisabled(left,     true);
+      setDisabled(right,    false);
+      straight.forEach(cb => cb.checked = false);
+      left.forEach(cb     => cb.checked = false);
+    } else {
+      // nic nie zaznaczone → odblokuj wszystko
+      setDisabled([...straight, ...left, ...right], false);
+    }
+  }
+
+  [...straight, ...left, ...right].forEach(cb => cb.addEventListener('change', update));
+}
+
+// Inicjalizuj dla wszystkich fieldsetów na stronie
+document.querySelectorAll('fieldset').forEach(fs => setupInstructionCheckboxes(fs));
+
+
+// ========== HELPER FUNCTIONS ==========
+function formatAdminLabel(room) {
+  if (!room) return "";
+
+  const base = room.name
+    .replace(/\s*p\.\d+$/i, '')
+    .trim();
+
+  
+  if (room.floor === 0 || room.floor === "0") {
+    return base;
+  }
+
+  
+  if (room.floor !== null && room.floor !== undefined && room.floor !== "") {
+    return `${base} (Piętro ${room.floor})`;
+  }
+
+  return base;
+}
+
+
+
+function showResponse(id, data, err = false) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  
+  if (data.error) {
+    el.innerHTML = `<span style="color:red">${data.error}</span>`;
+  } else if (data.success) {
+    el.innerHTML = `<span style="color:green">${data.success}</span>`;
+  } else {
+    el.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+  }
+  
+  el.className = 'response show ' + (err ? 'error' : 'success');
+}
+
+// ========== NAVIGATION ==========
+function show(id) {
+  document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  // POPRAWKA: aktualizuj klasę .active tylko na podstawie sectionId, nie na podstawie focus/hover
+  document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
+  const btn = document.querySelector(`nav button[onclick*="'${id}'"]`);
+  if (btn) btn.classList.add("active");
+
+  if (["addRoom", "addConnection", "editConnection", "multiStairsElevator"].includes(id)) {
+    loadRoomsActive();
+    setupSearchableSelects(); 
+  }
+  if (id === "manageRooms") loadRoomsAll();
+  if (id === "graphView") loadGraph();
+  if (id === "reportsView") loadReports(false);
+}
+
+// ========== LOAD CONNECTION DATA INTO FORM ==========
+async function loadConnectionDataIntoForm(connectionId) {
+  if (!connectionId) return;
+  
+  try {
+    const res = await fetch(`/connection/${connectionId}`);
+    const c = await res.json();
+    
+    document.getElementById("editConnId").value = c.id;
+    document.getElementById("editDistance").value = c.dystans || "";
+    document.getElementById("editExtra").value = c.dodatkowy_czas || 0;
+    document.getElementById("editStatus").value = c.status || "Aktywny";
+    
+    
+    const instrParts = (c.instrukcja_ab || "").split("|");
+    const customInstr = instrParts.length > 1 ? instrParts[1].trim() : "";
+    document.getElementById("editCustom").value = customInstr;
+    
+    
+    const roomsRes = await fetch("/rooms_active");
+    const rooms = await roomsRes.json();
+    
+    const fromRoom = rooms.find(r => r.name === c.from_room);
+    const toRoom = rooms.find(r => r.name === c.to_room);
+    
+    const editFrom = document.getElementById("editFrom");
+    const editTo = document.getElementById("editTo");
+    
+    if (fromRoom) {
+      editFrom.value = formatAdminLabel(fromRoom);
+      editFrom.dataset.value = fromRoom.name;
+    }
+    
+    if (toRoom) {
+      editTo.value = formatAdminLabel(toRoom);
+      editTo.dataset.value = toRoom.name;
+    }
+
+    
+    const standardInstr = instrParts[0].split(",").map(s => s.trim()).filter(Boolean);
+    document.querySelectorAll(".editInstr").forEach(cb => {
+      cb.checked = standardInstr.includes(cb.value);
+    });
+    
+    
+    displayExistingImages(c);
+    
+  } catch (err) {
+    showResponse("editResp", { error: err.message }, true);
+  }
+}
+
+function displayExistingImages(connection) {
+  document.querySelectorAll('.image-preview').forEach(e => e.remove());
+
+  const form = document.getElementById("editConnForm");
+
+  if (connection.image_ab) {
+    const input = form.querySelector('input[name="image_ab"]');
+    input.before(
+      createImagePreview(connection.image_ab, "Zdjęcie A → B", "remove_image_ab")
+    );
+  }
+
+  if (connection.image_ba) {
+    const input = form.querySelector('input[name="image_ba"]');
+    input.before(
+      createImagePreview(connection.image_ba, "Zdjęcie B → A", "remove_image_ba")
+    );
+  }
+}
+
+
+// Funkcja pomocnicza do tworzenia podglądu zdjęcia
+function createImagePreview(imagePath, label, removeFieldName) {
+  const container = document.createElement('div');
+  container.className = 'image-preview';
+  container.style.cssText =
+    'margin:10px 0;padding:10px;background:#f0f0f0;border-radius:8px;';
+
+  const title = document.createElement('div');
+  title.textContent = label;
+  title.style.cssText = 'font-size:13px;color:#666;margin-bottom:6px;';
+
+  const img = document.createElement('img');
+  img.src = imagePath;
+  img.style.cssText =
+    'max-width:200px;max-height:140px;border-radius:6px;display:block;margin-bottom:8px;';
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.textContent = 'Usuń zdjęcie';
+  btn.style.cssText =
+    'background:#e74c3c;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:13px;';
+
+  btn.onclick = () => {
+    container.remove();
+    document.querySelector(`input[name="${removeFieldName}"]`).value = "1";
+  };
+
+  container.append(title, img, btn);
+  return container;
+}
+
+
+// ========== CUSTOM SELECT WITH SEARCH ==========
+async function setupSearchableSelects() {
+  const selects = document.querySelectorAll('.custom-select');
+
+  for (const sel of selects) {
+    const input = sel.querySelector('input');
+    const optionsBox = sel.querySelector('.options');
+    const source = sel.dataset.source;
+
+    let items = [];
+    try {
+      const res = await fetch(source);
+      if (!res.ok) throw new Error("Błąd pobierania danych");
+      items = await res.json();
+    } catch (e) {
+      console.error("Nie udało się pobrać danych:", e);
+      continue;
+    }
+
+    optionsBox.innerHTML = "";
+
+    if (source === "/connections") {
+      
+      items.forEach(conn => {
+        const div = document.createElement("div");
+        div.className = "option";
+        div.textContent = `${conn.from_room} → ${conn.to_room} [${conn.status}]`;
+        div.dataset.value = conn.id;
+
+        div.addEventListener("click", async () => {
+          input.value = div.textContent;
+          input.dataset.value = conn.id;
+          optionsBox.style.display = "none";
+          
+          
+          await loadConnectionDataIntoForm(conn.id);
+        });
+
+        optionsBox.appendChild(div);
+      });
+    } else {
+      
+      items.filter(it => it.type !== "corridor").forEach(it => {
+        const div = document.createElement("div");
+        div.className = "option";
+
+        const displayLabel = formatAdminLabel(it);
+        const originalName = it.name;
+
+        div.textContent = displayLabel;
+        div.dataset.value = originalName; 
+
+        div.addEventListener("click", () => {
+          input.value = displayLabel;
+          input.dataset.value = originalName; 
+          optionsBox.style.display = "none";
+        });
+
+        optionsBox.appendChild(div);
+      });
+    }
+
+    
+    input.addEventListener("input", () => {
+      const filter = input.value.toLowerCase();
+      Array.from(optionsBox.children).forEach(opt => {
+        opt.style.display = opt.textContent.toLowerCase().includes(filter) ? "" : "none";
+      });
+    });
+
+    
+    input.addEventListener("focus", () => optionsBox.style.display = "block");
+    
+    
+    document.addEventListener("click", e => {
+      if (!sel.contains(e.target)) optionsBox.style.display = "none";
+    });
+  }
+}
+
+// ========== LOAD ROOMS FOR STANDARD SELECTS ==========
+async function loadRoomsActive() {
+  try {
+    const res = await fetch("/rooms_active");
+    const rooms = await res.json();
+
+    const selects = ["neighborSelectMulti", "editFrom", "editTo"]
+      .map(id => document.getElementById(id))
+      .filter(Boolean);
+
+    selects.forEach(sel => {
+      sel.innerHTML = "<option value=''>-- wybierz --</option>";
+
+      rooms
+        .filter(r => r.type !== "corridor")
+        .forEach(r => {
+          const o = document.createElement("option");
+          o.value = r.name;
+          o.textContent = formatAdminLabel(r);
+          sel.appendChild(o);
+        });
+    });
+  } catch (err) {
+    console.error("Błąd przy ładowaniu pokoi:", err);
+  }
+}
+
+// ========== LOAD CONNECTIONS ==========
+async function loadConnections() {
+  try {
+    const selDiv = document.querySelector(".connection-select");
+    const input = selDiv.querySelector("input");
+    const optionsBox = selDiv.querySelector(".options");
+
+    input.value = "";           
+    delete input.dataset.value; 
+    optionsBox.innerHTML = "";  
+
+    const res = await fetch("/connections");
+    const conns = await res.json();
+
+    conns.forEach(c => {
+      const div = document.createElement("div");
+      div.className = "option";
+      div.textContent = `${c.from_room} → ${c.to_room} [${c.status}]`;
+      div.dataset.value = c.id;
+
+      div.addEventListener("click", () => {
+        input.value = div.textContent;
+        input.dataset.value = div.dataset.value;
+        optionsBox.style.display = "none";
+      });
+
+      optionsBox.appendChild(div);
+    });
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+
+// ========== MANAGE ROOMS TABLE ==========
+async function loadRoomsAll() {
+  try {
+    const res = await fetch("/rooms");
+    const rooms = await res.json();
+    const tbody = document.querySelector("#roomsTable tbody");
+    tbody.innerHTML = "";
+
+    rooms.sort((a, b) => (a.floor - b.floor) || a.name.localeCompare(b.name, "pl"));
+
+    const used = new Set();
+
+    const getBaseName = (name) => {
+      return name.toLowerCase()
+        .replace(/\s*korytarz\s*/gi, '')
+        .replace(/\s*p\.\d+\s*$/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    };
+
+    for (const r of rooms) {
+      if (used.has(r.id)) continue;
+
+      let stairs = null;
+      let corridor = null;
+
+      if (r.type === "stairs" || r.type === "elevator") {
+        const baseName = getBaseName(r.name);
+        corridor = rooms.find(rr =>
+          !used.has(rr.id) &&
+          rr.type === "corridor" &&
+          rr.floor == r.floor &&
+          rr.name.toLowerCase().includes("korytarz") &&
+          getBaseName(rr.name) === baseName
+        );
+        if (corridor) stairs = r;
+      } else if (r.type === "corridor" && r.name.toLowerCase().includes("korytarz")) {
+        const baseName = getBaseName(r.name);
+        stairs = rooms.find(rr =>
+          !used.has(rr.id) &&
+          (rr.type === "stairs" || rr.type === "elevator") &&
+          rr.floor == r.floor &&
+          getBaseName(rr.name) === baseName
+        );
+        if (stairs) corridor = r;
+      }
+
+      const tr = document.createElement("tr");
+
+      if (stairs && corridor) {
+        used.add(stairs.id);
+        used.add(corridor.id);
+        const stairsLabel = stairs.type === "elevator" ? "winda" : "schody";
+
+        tr.innerHTML = `
+          <td>
+            <div class="room-name-display" data-id="${stairs.id}">
+              <strong>${formatAdminLabel(stairs)}</strong>
+            </div>
+            <input type="text" class="edit-name-input" data-id="${stairs.id}" value="${stairs.name}" style="display:none;">
+            <br>
+            <div class="room-name-display" data-id="${corridor.id}">
+              <strong>${formatAdminLabel(corridor)}</strong>
+            </div>
+            <input type="text" class="edit-name-input" data-id="${corridor.id}" value="${corridor.name}" style="display:none;">
+          </td>
+          <td>${formatFloorLabel(stairs.floor)}</td>
+          <td>
+            <label><input type="checkbox" class="statusBox" data-id="${stairs.id}" ${stairs.status === "Aktywny" ? "checked" : ""}> ${stairsLabel}</label><br>
+            <label><input type="checkbox" class="statusBox" data-id="${corridor.id}" ${corridor.status === "Aktywny" ? "checked" : ""}> korytarz</label>
+          </td>
+          <td>
+            <label><input type="checkbox" class="statusBoxInactive" data-id="${stairs.id}" ${stairs.status === "Nieaktywny" ? "checked" : ""}> ${stairsLabel}</label><br>
+            <label><input type="checkbox" class="statusBoxInactive" data-id="${corridor.id}" ${corridor.status === "Nieaktywny" ? "checked" : ""}> korytarz</label>
+          </td>
+        `;
+      } else {
+        tr.innerHTML = `
+          <td>
+            <div class="room-name-display" data-id="${r.id}" data-original="${r.name}">
+              <strong>${formatAdminLabel(r)}</strong>
+            </div>
+            <input type="text" class="edit-name-input" data-id="${r.id}" value="${r.name}" style="display:none;">
+          </td>
+          <td>${formatFloorLabel(r.floor)}</td>
+          <td><input type="checkbox" class="statusBox" data-id="${r.id}" ${r.status === "Aktywny" ? "checked" : ""}></td>
+          <td><input type="checkbox" class="statusBoxInactive" data-id="${r.id}" ${r.status === "Nieaktywny" ? "checked" : ""}></td>
+        `;
+      }
+
+      tbody.appendChild(tr);
+    }
+
+    // Status checkboxes
+    tbody.querySelectorAll(".statusBox, .statusBoxInactive").forEach(cb => {
+      cb.addEventListener("change", async e => {
+        const id = e.target.dataset.id;
+        const isActive = e.target.classList.contains("statusBox");
+        const status = isActive
+          ? (e.target.checked ? "Aktywny" : "Nieaktywny")
+          : (e.target.checked ? "Nieaktywny" : "Aktywny");
+
+        const row = e.target.closest("tr");
+        const otherSelector = isActive ? ".statusBoxInactive" : ".statusBox";
+        const other = row.querySelector(`${otherSelector}[data-id='${id}']`);
+        if (other) other.checked = !e.target.checked;
+
+        await updateRoomStatusInstant(id, status, row);
+      });
+    });
+
+    // Edit room name on double-click
+    tbody.querySelectorAll(".room-name-display").forEach(display => {
+      display.addEventListener("dblclick", function() {
+        const id = this.dataset.id;
+        const originalName = this.dataset.original;
+        const input = tbody.querySelector(`.edit-name-input[data-id='${id}']`);
+        
+        this.style.display = "none";
+        input.style.display = "block";
+        input.focus();
+        input.select();
+        
+        const newInput = input.cloneNode(true);
+        input.parentNode.replaceChild(newInput, input);
+        
+        newInput.addEventListener("keydown", async function(e) {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            await saveRoomName(id, newInput.value.trim(), originalName, display, newInput);
+          } else if (e.key === "Escape") {
+            cancelEditRoomName(display, newInput);
+          }
+        });
+        
+        newInput.addEventListener("blur", async function() {
+          await saveRoomName(id, newInput.value.trim(), originalName, display, newInput);
+        });
+      });
+    });
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function saveRoomName(id, newName, originalName, display, input) {
+   if (newName === originalName) {
+       cancelEditRoomName(display, input);
+       return;
+     }
+  if (!newName) {
+    showResponse("manageResp", { error: "Nazwa nie może być pusta" }, true);
+    cancelEditRoomName(display, input);
+    return;
+  }
+  
+  try {
+    const fd = new FormData();
+    fd.append("name", newName);
+    
+    const res = await fetch(`/admin/edit_room_name/${id}`, { method: "POST", body: fd });
+    const json = await res.json();
+    
+    if (res.ok) {
+      showResponse("manageResp", { success: "Nazwa zaktualizowana: " + newName }, false);
+      await loadRoomsAll();
+      await loadRoomsActive();
+      await loadConnections();
+    } else {
+      showResponse("manageResp", json, true);
+      cancelEditRoomName(display, input);
+    }
+  } catch (err) {
+    showResponse("manageResp", { error: err.message }, true);
+    cancelEditRoomName(display, input);
+  }
+}
+
+function cancelEditRoomName(display, input) {
+  input.style.display = "none";
+  display.style.display = "block";
+}
+
+async function updateRoomStatusInstant(id, status, row) {
+  try {
+    const fd = new FormData();
+    fd.append("status", status);
+    const res = await fetch(`/admin/set_room_status/${id}`, { method: "POST", body: fd });
+    const json = await res.json();
+
+    if (res.ok) {
+      row.classList.add(status === "Aktywny" ? "row-flash-green" : "row-flash-red");
+      setTimeout(() => row.classList.remove("row-flash-green", "row-flash-red"), 1200);
+    } else {
+      showResponse("manageResp", json, true);
+    }
+  } catch (err) {
+    showResponse("manageResp", { error: err.message }, true);
+  }
+}
+
+// ========== FORM HANDLERS ==========
+
+// Add Room Form
+document.getElementById("roomForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const neighborInput = document.getElementById("neighborSelect");
+  
+  if (neighborInput && neighborInput.dataset.value) {
+    fd.set("neighbor", neighborInput.dataset.value);
+  }
+
+  
+  const savedFloor = e.target.querySelector('input[name="floor"]').value;
+  
+  try {
+    const res = await fetch("/admin/add_room", { method: "POST", body: fd });
+    const json = await res.json();
+    showResponse("roomResp", json, !res.ok);
+
+    if (res.ok) {
+      e.target.reset();
+
+      
+      e.target.querySelector('input[name="floor"]').value = savedFloor;
+
+      await loadRoomsActive();
+      await loadRoomsAll();
+      await loadConnections();
+      await setupSearchableSelects();
+    }
+  } catch (err) {
+    showResponse("roomResp", { error: err.message }, true);
+  }
+});
+
+// Add Connection Form
+document.getElementById("connectionForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  
+  const fromInput = e.target.querySelector("input[name='from_room']");
+  const toInput = e.target.querySelector("input[name='to_room']");
+
+  if (fromInput && fromInput.dataset.value) {
+    fd.set("from_room", fromInput.dataset.value);
+  }
+  if (toInput && toInput.dataset.value) {
+    fd.set("to_room", toInput.dataset.value);
+  }
+
+  try {
+    const res = await fetch("/admin/add_connection", { method: "POST", body: fd });
+    const json = await res.json();
+    showResponse("connResp", json, !res.ok);
+    
+    if (res.ok) {
+      e.target.reset();
+      await loadConnections();
+      await setupSearchableSelects();
+    }
+  } catch (err) {
+    showResponse("connResp", { error: err.message }, true);
+  }
+});
+
+// Edit Connection Form
+document.getElementById("editConnForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const id = document.getElementById("editConnId").value; 
+  
+  if (!id) {
+    showResponse("editResp", { error: "Wybierz połączenie" }, true);
+    return;
+  }
+  
+  const fd = new FormData(e.target);
+  
+  
+  const fromInput = document.getElementById("editFrom");
+  const toInput = document.getElementById("editTo");
+  
+  if (fromInput && fromInput.dataset.value) {
+    fd.set("from_room", fromInput.dataset.value);
+  }
+  if (toInput && toInput.dataset.value) {
+    fd.set("to_room", toInput.dataset.value);
+  }
+  
+  try {
+    const res = await fetch("/admin/edit_connection", { method: "POST", body: fd });
+    const json = await res.json();
+    showResponse("editResp", json, !res.ok);
+    
+    if (res.ok) {
+      await loadConnections();
+      await setupSearchableSelects();
+    }
+  } catch (err) {
+    showResponse("editResp", { error: err.message }, true);
+  }
+});
+
+
+
+// Multi Stairs/Elevator Form
+document.getElementById("multiForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+
+  try {
+    const res = await fetch("/admin/add_multi_floors", { method: "POST", body: fd });
+    const json = await res.json();
+    const results = Array.isArray(json) ? json : (json.results || [json]);
+
+    const el = document.getElementById("multiResp");
+    el.innerHTML = "";
+    el.className = "response show";
+
+    results.forEach(r => {
+      const p = document.createElement("p");
+      if (r.error) {
+        p.style.color = "red";
+        p.textContent = `piętro ${r.floor}: ${r.error}`;
+      } else {
+        p.style.color = "green";
+        p.textContent = `piętro ${r.floor}: ${r.success}`;
+      }
+      el.appendChild(p);
+    });
+
+    await loadRoomsActive();
+    await setupSearchableSelects();
+  } catch (err) {
+    showResponse("multiResp", { error: err.message }, true);
+  }
+});
+
+// ========== GRAPH VISUALIZATION ==========
+let network, nodesData, edgesData;
+let allRooms = [];
+let allConnections = [];
+
+async function loadGraph() {
+  try {
+    const [resRooms, resConns] = await Promise.all([
+      fetch("/rooms_active"),
+      fetch("/connections")
+    ]);
+
+    allRooms = await resRooms.json();
+    allConnections = await resConns.json();
+
+    const floorSelect = document.getElementById("floorFilter");
+
+    if (floorSelect && floorSelect.options.length <= 1) {
+      const floors = [...new Set(allRooms.map(r => r.floor).filter(f => f !== null))];
+      floors.sort((a, b) => Number(a) - Number(b));
+
+      floors.forEach(f => {
+        const opt = document.createElement("option");
+        opt.value = f;
+        opt.textContent = f == 0 ? "Parter" : `Piętro ${f}`;
+        floorSelect.appendChild(opt);
+      });
+
+      floorSelect.addEventListener("change", renderGraphFiltered);
+    }
+
+    nodesData = new vis.DataSet(
+      allRooms.map(r => ({
+        id: r.name,
+        label: r.name + (r.floor ? `\n(p. ${r.floor})` : ''),
+        color: r.type === 'stairs' ? '#f39c12' :
+               r.type === 'elevator' ? '#3498db' :
+               r.type === 'external' ? '#1abc9c' :
+               r.type === 'exit' ? '#2ecc71' : '#9b59b6',
+        title: `
+          Nazwa: ${r.name}
+          Typ: ${r.type}
+          Piętro: ${r.floor || '–'}
+          Status: ${r.status || 'Aktywny'}
+        `
+      }))
+    );
+
+    edgesData = new vis.DataSet(
+      allConnections.filter(c => c.status === "Aktywny").map(c => ({
+        from: c.from_room,
+        to: c.to_room,
+        label: `${c.dystans} m`,
+        color: '#888',
+        arrows: '',
+        title: `
+          Połączenie: ${c.from_room} → ${c.to_room}
+          Dystans: ${c.dystans} m
+          Dodatkowy czas: ${c.dodatkowy_czas || 0} s
+          Instrukcje A→B: ${c.instrukcja_ab || '–'}
+          Instrukcje B→A: ${c.instrukcja_ba || '–'}
+          Status: ${c.status || 'Aktywny'}
+        `
+      }))
+    );
+
+    const container = document.getElementById("graphContainer");
+    const options = {
+      layout: { improvedLayout: true },
+      physics: { enabled: true },
+      edges: { smooth: true, font: { align: 'top' } },
+      nodes: { shape: 'box', margin: 10, font: { multi: 'html' } },
+      interaction: { hover: true }
+    };
+    
+    network = new vis.Network(container, { nodes: nodesData, edges: edgesData }, options);
+    renderGraphFiltered();
+  } catch (err) {
+    console.error("Błąd ładowania grafu:", err);
+  }
+}
+
+function formatFloorLabel(floor) {
+  if (floor === 0 || floor === "0") return "Parter";
+  if (floor === null || floor === undefined || floor === "") return "";
+  return `Piętro ${floor}`;
+}
+
+
+function renderGraphFiltered() {
+  if (!nodesData || !edgesData) return;
+
+  const selectedFloor = document.getElementById("floorFilter").value;
+
+  const visibleRooms = selectedFloor === "all"
+    ? allRooms
+    : allRooms.filter(r => String(r.floor) === String(selectedFloor));
+
+  const visibleNames = new Set(visibleRooms.map(r => r.name));
+
+  const visibleConnections = allConnections.filter(c =>
+    c.status === "Aktywny" &&
+    visibleNames.has(c.from_room) &&
+    visibleNames.has(c.to_room)
+  );
+
+  nodesData.clear();
+  edgesData.clear();
+
+  nodesData.add(
+    visibleRooms.map(r => ({
+      id: r.name,
+      label: r.name + (
+      r.floor === 0 || r.floor === "0"
+      ? `\n(Parter)`
+      : r.floor !== null && r.floor !== undefined
+      ? `\n(Piętro ${r.floor})`
+      : ''
+),
+
+      color:
+        r.type === 'stairs' ? '#f39c12' :
+        r.type === 'elevator' ? '#3498db' :
+        r.type === 'exit' ? '#2ecc71' :
+        r.type === 'external' ? '#1abc9c' :
+        '#9b59b6',
+      title: `
+        Nazwa: ${r.name}
+        Typ: ${r.type}
+        Piętro: ${r.floor ?? '–'}
+        Status: ${r.status ?? 'Aktywny'}
+      `
+    }))
+  );
+
+  edgesData.add(
+    visibleConnections.map(c => ({
+      from: c.from_room,
+      to: c.to_room,
+      label: `${c.dystans} m`,
+      color: '#888',
+      title: `
+        Połączenie: ${c.from_room} → ${c.to_room}
+        Dystans: ${c.dystans} m
+        Dodatkowy czas: ${c.dodatkowy_czas || 0} s
+        Instrukcja A→B: ${c.instrukcja_ab || '–'}
+        Instrukcja B→A: ${c.instrukcja_ba || '–'}
+        Status: ${c.status || 'Aktywny'}
+      `
+    }))
+  );
+}
+
+
+document.querySelector("nav button[onclick*=\"'graphView'\"]")
+  .addEventListener("click", loadGraph);
+
+// ========== REPORTS ==========
+let reportsShowUnread = false;
+
+async function loadReports(unreadOnly) {
+  reportsShowUnread = unreadOnly;
+  document.getElementById('btnAll').style.background    = unreadOnly ? 'white'   : '#667eea';
+  document.getElementById('btnAll').style.color         = unreadOnly ? '#667eea' : 'white';
+  document.getElementById('btnUnread').style.background = unreadOnly ? '#667eea' : 'white';
+  document.getElementById('btnUnread').style.color      = unreadOnly ? 'white'   : '#667eea';
+
+  const list = document.getElementById('reportsList');
+  list.innerHTML = '<p style="color:#999;font-size:14px;">Ładowanie...</p>';
+
+  try {
+    const res = await fetch('/admin/reports' + (unreadOnly ? '?unread=1' : ''));
+    const reports = await res.json();
+    list.innerHTML = '';
+
+    if (!reports.length) {
+      list.innerHTML = '<p style="color:#aaa;font-size:14px;">Brak zgłoszeń.</p>';
+      return;
+    }
+
+    reports.forEach(r => {
+      const card = document.createElement('div');
+      card.className = 'report-card ' + (r.is_read ? 'read' : 'unread');
+      card.id = 'report-' + r.id;
+
+      // Buduj linię trasy
+      let routeInfo = '';
+      if (r.start_label || r.end_label) {
+        routeInfo = (r.start_label || r.start_room || '?') + ' → ' + (r.end_label || r.end_room || '?');
+        if (r.step) routeInfo += '  |  krok ' + r.step + (r.total_steps ? ' z ' + r.total_steps : '');
+      }
+
+      card.innerHTML =
+        '<div class="report-card-meta">' +
+          (r.is_read ? '✓ przeczytane' : '● nowe') +
+          ' &nbsp;·&nbsp; ' + (r.created_at || '') +
+          (r.context ? ' &nbsp;·&nbsp; ' + r.context : '') +
+        '</div>' +
+        (routeInfo ? '<div class="report-card-route">' + routeInfo + '</div>' : '') +
+        '<div class="report-card-msg">' + r.message + '</div>' +
+        '<div class="report-card-actions">' +
+          (!r.is_read
+            ? '<button class="report-btn-read" onclick="markRead(' + r.id + ')">✓ Przeczytane</button>'
+            : '') +
+          '<button class="report-btn-del" onclick="deleteReport(' + r.id + ')">Usuń</button>' +
+        '</div>';
+
+      list.appendChild(card);
+    });
+  } catch(e) {
+    list.innerHTML = '<p style="color:#c33;">Błąd ładowania zgłoszeń.</p>';
+  }
+}
+
+async function markRead(id) {
+  await fetch('/admin/reports/' + id + '/read', { method: 'POST' });
+  await loadReports(reportsShowUnread);
+  await refreshReportsBadge();
+}
+
+async function deleteReport(id) {
+  if (!confirm('Usunąć to zgłoszenie?')) return;
+  await fetch('/admin/reports/' + id + '/delete', { method: 'POST' });
+  await loadReports(reportsShowUnread);
+  await refreshReportsBadge();
+}
+
+async function refreshReportsBadge() {
+  try {
+    const res = await fetch('/admin/reports?unread=1');
+    const data = await res.json();
+    const badge = document.getElementById('reportsbadge');
+    if (data.length > 0) {
+      badge.textContent = data.length;
+      badge.style.display = 'inline';
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch(e) {}
+}
+
+// ========== INIT ==========
+(async function() {
+  await loadRoomsActive();
+  await loadRoomsAll();
+  await loadConnections();
+  await refreshReportsBadge();
+})();
+
+document.addEventListener("DOMContentLoaded", setupSearchableSelects);
+
+</script>
+</body>
+</html>

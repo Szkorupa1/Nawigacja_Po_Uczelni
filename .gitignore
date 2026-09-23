@@ -1,0 +1,6 @@
+backend/Baza.db
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env

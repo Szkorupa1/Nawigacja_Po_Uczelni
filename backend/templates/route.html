@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Nawigacja - Krok po kroku</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh; padding: 20px 20px 10px;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .container {
+      width: 100%; max-width: 600px; background: white;
+      border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; padding: 20px; text-align: center; position: relative;
+    }
+    .back-btn {
+      position: absolute; left: 20px; top: 16px;
+      background: rgba(255,255,255,0.2); border: none; color: white;
+      width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 20px;
+    }
+    .back-btn:hover { background: rgba(255,255,255,0.3); }
+    .destination { font-size: 24px; font-weight: 700; margin-bottom: 5px; }
+    .progress-bar { background: rgba(255,255,255,0.2); height: 6px; border-radius: 3px; margin-top: 15px; overflow: hidden; }
+    .progress-fill { background: white; height: 100%; transition: width 0.3s; }
+    .progress-text { margin-top: 8px; font-size: 14px; opacity: 0.9; }
+    .content { padding: 30px 20px; }
+    .step-image {
+      width: 100%; max-height: 500px; background: #f0f0f0; border-radius: 12px;
+      overflow: hidden; margin-bottom: 20px; display: flex;
+      align-items: center; justify-content: center; color: #999; padding: 15px;
+    }
+    .step-image img { width: 100%; height: auto; max-height: 500px; object-fit: contain; display: block; }
+    .step-image.no-photo { min-height: 80px; font-size: 13px; color: #bbb; }
+    .step-info { background: #f8f9fa; padding: 25px; border-radius: 12px; margin-bottom: 20px; }
+    .step-number { font-size: 18px; color: #667eea; font-weight: 700; margin-bottom: 12px; }
+    .step-instruction { font-size: 32px; font-weight: 700; color: #333; margin-bottom: 15px; }
+    .step-details { font-size: 20px; color: #666; margin-bottom: 10px; }
+    .step-distance { font-size: 24px; color: #667eea; font-weight: 600; }
+    .navigation-buttons { display: flex; gap: 15px; margin-bottom: 20px; }
+    .nav-btn {
+      flex: 1; padding: 16px; border: none; border-radius: 12px;
+      font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .prev-btn { background: #e0e0e0; color: #333; }
+    .prev-btn:not(:disabled):hover { background: #d0d0d0; transform: translateY(-2px); }
+    .next-btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+    .next-btn:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(102,126,234,0.4); }
+    .finish-btn { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; }
+    .finish-btn:hover { transform: translateY(-2px); }
+    .show-all-btn {
+      width: 100%; background: white; color: #667eea; border: 2px solid #667eea;
+      padding: 14px; border-radius: 12px; font-size: 16px; font-weight: 600;
+      cursor: pointer; transition: all 0.3s;
+    }
+    .show-all-btn:hover { background: #667eea; color: white; }
+    .error { background: #fee; color: #c33; padding: 20px; border-radius: 12px; text-align: center; }
+
+    /* Przycisk zgłoszenia — POZA białym boxem */
+    .report-footer {
+      margin-top: 14px; width: 100%; max-width: 600px; text-align: center;
+    }
+    .report-footer button {
+      background: none; border: none; color: rgba(255,255,255,0.45);
+      font-size: 13px; cursor: pointer; font-family: inherit;
+      padding: 8px 16px; transition: color 0.2s;
+    }
+    .report-footer button:hover { color: rgba(255,255,255,0.85); }
+
+    /* Modale */
+    .modal {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); z-index: 1000;
+      padding: 16px; align-items: center; justify-content: center;
+    }
+    .modal.active { display: flex; }
+    .modal-content {
+      background: white; border-radius: 20px; padding: 30px;
+      max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto;
+    }
+    .report-box {
+      background: white; border-radius: 20px; padding: 26px 22px;
+      max-width: 460px; width: 100%; max-height: 90vh; overflow-y: auto;
+    }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+    .modal-header h2 { font-size: 22px; color: #333; }
+    .close-modal {
+      background: none; border: none; font-size: 30px; color: #999;
+      cursor: pointer; width: 40px; height: 40px; border-radius: 50%; transition: all 0.2s;
+    }
+    .close-modal:hover { background: #f0f0f0; color: #333; }
+    .all-steps { display: flex; flex-direction: column; gap: 15px; }
+    .step-card { background: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 4px solid #667eea; }
+    .step-card.completed { border-left-color: #28a745; opacity: 0.7; }
+    .step-card.current { box-shadow: 0 3px 10px rgba(102,126,234,0.2); }
+
+    .report-meta { background: #f8f9fa; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #666; margin-bottom: 14px; }
+    .report-box textarea {
+      width: 100%; min-height: 85px; padding: 12px; border: 2px solid #e0e0e0;
+      border-radius: 10px; font-family: inherit; font-size: 15px; resize: vertical; margin-bottom: 14px;
+    }
+    .report-box textarea:focus { border-color: #667eea; outline: none; }
+
+    /* Captcha obrazkowa */
+    .captcha-wrap { margin-bottom: 16px; }
+    .captcha-title { font-size: 14px; font-weight: 600; color: #444; margin-bottom: 10px; line-height: 1.4; }
+    .captcha-title span { color: #667eea; }
+    .captcha-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .captcha-cell {
+      aspect-ratio: 1; border-radius: 10px; border: 2.5px solid #e0e0e0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; cursor: pointer; user-select: none;
+      transition: border-color 0.15s, background 0.15s; background: #f8f9fa;
+    }
+    .captcha-cell:hover { border-color: #667eea; background: #f0f2ff; }
+    .captcha-cell.selected { border-color: #667eea; background: #e8ecff; box-shadow: 0 0 0 3px rgba(102,126,234,0.2); }
+    .captcha-refresh { margin-top: 8px; font-size: 12px; color: #aaa; background: none; border: none; cursor: pointer; font-family: inherit; padding: 2px 0; text-decoration: underline; }
+    .captcha-refresh:hover { color: #667eea; }
+
+    .report-error { color: #c33; font-size: 13px; margin-bottom: 10px; display: none; }
+    .report-submit-btn {
+      width: 100%; padding: 13px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; border: none; border-radius: 10px;
+      font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .report-submit-btn:hover { transform: translateY(-1px); box-shadow: 0 5px 15px rgba(102,126,234,0.4); }
+    .report-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <button class="back-btn" onclick="goBack()">←</button>
+      <div>
+        <div class="destination" id="destination">Ładowanie...</div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-text" id="progressText">Krok 0 z 0</div>
+      </div>
+    </div>
+    <div class="content" id="content">
+      <div class="error">Ładowanie trasy...</div>
+    </div>
+  </div>
+
+  <!-- Przycisk zgłoszenia POZA białym boxem -->
+  <div class="report-footer">
+    <button onclick="openReport()">⚑ Zgłoś problem z tą trasą</button>
+  </div>
+
+  <!-- Modal całej trasy -->
+  <div class="modal" id="allStepsModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Cała trasa</h2>
+        <button class="close-modal" onclick="closeModal('allStepsModal')">×</button>
+      </div>
+      <div class="all-steps" id="allStepsList"></div>
+    </div>
+  </div>
+
+  <!-- Modal zgłoszenia -->
+  <div class="modal" id="reportModal">
+    <div class="report-box">
+      <div class="modal-header">
+        <h2>Zgłoś problem</h2>
+        <button class="close-modal" onclick="closeModal('reportModal')">×</button>
+      </div>
+      <div class="report-meta" id="reportMeta"></div>
+      <textarea id="reportText" placeholder="Opisz problem z trasą..." maxlength="1000"></textarea>
+      <div class="captcha-wrap">
+        <div class="captcha-title">Zaznacz wszystkie obrazki z: <span id="captchaLabel"></span></div>
+        <div class="captcha-grid" id="captchaGrid"></div>
+        <button class="captcha-refresh" onclick="buildCaptcha()">↺ Inne obrazki</button>
+      </div>
+      <div class="report-error" id="reportError"></div>
+      <button class="report-submit-btn" id="reportSubmitBtn" onclick="submitReport()">Wyślij zgłoszenie</button>
+    </div>
+  </div>
+
+  <script>
+    var routeData = null;
+    var currentStep = 0;
+    var endLabel = "";
+    var startLabel = "";
+    var routeParams = null;
+
+    function goBack() { window.location.replace('/'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+    function showAllSteps() { renderAllStepsList(); document.getElementById('allStepsModal').classList.add('active'); }
+    function formatDistance(n) {
+      if (n === 1) return "1 metr";
+      if (n >= 2 && n <= 4) return n + " metry";
+      return n + " metrów";
+    }
+
+    // ===== CAPTCHA OBRAZKOWA =====
+    var CATEGORIES = [
+      { label: 'zwierzęta',  items: ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵'], decoys: ['🌸','🍎','🚗','⚽','🏠','🎸','🌊','🍕'] },
+      { label: 'owoce',      items: ['🍎','🍊','🍋','🍇','🍓','🍑','🍒','🥭','🍍','🥝','🍈','🍌','🫐','🍏','🍐'], decoys: ['🐶','🚗','🏠','⚽','🎸','🌸','🌊','🍕'] },
+      { label: 'pojazdy',    items: ['🚗','🚕','🚙','🚌','🚎','🏎','🚓','🚑','🚒','🚐','🚚','🚛','🚜','🛻','🏍'], decoys: ['🍎','🐶','🌸','⚽','🏠','🎸','🌊','🍕'] },
+      { label: 'sport',      items: ['⚽','🏀','🏈','⚾','🎾','🏐','🏉','🎱','🏓','🏸','🥊','⛳','🎯','🏹','🛹'], decoys: ['🚗','🍎','🐶','🌸','🏠','🎸','🌊','🍕'] },
+      { label: 'jedzenie',   items: ['🍕','🍔','🌮','🌯','🍜','🍣','🍩','🍦','🧁','🍰','🥗','🍱','🥪','🌭','🥨'], decoys: ['🐶','🚗','⚽','🌸','🏠','🎸','🌊','🍎'] },
+    ];
+    var captchaCorrect = [];
+    var captchaSelected = [];
+
+    function shuffle(arr) {
+      var a = arr.slice();
+      for (var i = a.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+      }
+      return a;
+    }
+
+    function buildCaptcha() {
+      var cat = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)];
+      document.getElementById('captchaLabel').textContent = cat.label;
+      var correct = shuffle(cat.items).slice(0, 4);
+      var decoys  = shuffle(cat.decoys).slice(0, 4);
+      var all     = shuffle(correct.concat(decoys));
+      captchaCorrect = []; captchaSelected = [];
+      var grid = document.getElementById('captchaGrid');
+      grid.innerHTML = '';
+      all.forEach(function(emoji, idx) {
+        var cell = document.createElement('div');
+        cell.className = 'captcha-cell';
+        cell.textContent = emoji;
+        if (correct.indexOf(emoji) !== -1) captchaCorrect.push(idx);
+        cell.addEventListener('click', function() {
+          var i = captchaSelected.indexOf(idx);
+          if (i === -1) { captchaSelected.push(idx); cell.classList.add('selected'); }
+          else { captchaSelected.splice(i, 1); cell.classList.remove('selected'); }
+        });
+        grid.appendChild(cell);
+      });
+    }
+
+    function verifyCaptcha() {
+      if (captchaSelected.length !== captchaCorrect.length) return false;
+      return captchaSelected.slice().sort().join(',') === captchaCorrect.slice().sort().join(',');
+    }
+
+    // Rate limit klienta
+    var REPORT_KEY = 'report_times';
+    function canSubmitReport() {
+      var now = Date.now();
+      var times = JSON.parse(sessionStorage.getItem(REPORT_KEY) || '[]')
+        .filter(function(t) { return now - t < 10 * 60 * 1000; });
+      return times.length < 3;
+    }
+    function recordReportSubmit() {
+      var now = Date.now();
+      var times = JSON.parse(sessionStorage.getItem(REPORT_KEY) || '[]')
+        .filter(function(t) { return now - t < 10 * 60 * 1000; });
+      times.push(now); sessionStorage.setItem(REPORT_KEY, JSON.stringify(times));
+    }
+
+    function openReport() {
+      buildCaptcha();
+      var meta = document.getElementById('reportMeta');
+      if (routeData) {
+        meta.innerHTML = '<strong>Trasa:</strong> ' + (startLabel || '-') + ' → ' + (endLabel || '-') +
+          '<br><strong>Krok:</strong> ' + (currentStep + 1) + ' z ' + routeData.path.length;
+      } else {
+        meta.innerHTML = '<strong>Trasa:</strong> ' + (startLabel || '-') + ' → ' + (endLabel || '-');
+      }
+      document.getElementById('reportText').value = '';
+      document.getElementById('reportError').style.display = 'none';
+      document.getElementById('reportModal').classList.add('active');
+    }
+
+    async function submitReport() {
+      var text = document.getElementById('reportText').value.trim();
+      var errEl = document.getElementById('reportError');
+      errEl.style.display = 'none';
+
+      if (!text) { errEl.textContent = 'Wpisz treść zgłoszenia.'; errEl.style.display = 'block'; return; }
+      if (text.length > 1000) { errEl.textContent = 'Maksymalnie 1000 znaków.'; errEl.style.display = 'block'; return; }
+      if (!verifyCaptcha()) {
+        errEl.textContent = 'Zaznacz wszystkie poprawne obrazki, aby potwierdzić że nie jesteś robotem.';
+        errEl.style.display = 'block'; buildCaptcha(); return;
+      }
+      if (!canSubmitReport()) {
+        errEl.textContent = 'Zbyt wiele zgłoszeń. Poczekaj chwilę i spróbuj ponownie.';
+        errEl.style.display = 'block'; return;
+      }
+
+      var btn = document.getElementById('reportSubmitBtn');
+      btn.disabled = true; btn.textContent = 'Wysyłanie...';
+      try {
+        var fd = new FormData();
+        fd.append('message', text);
+        fd.append('start', routeParams ? routeParams.start : '');
+        fd.append('end',   routeParams ? routeParams.end   : '');
+        fd.append('start_label', startLabel || '');
+        fd.append('end_label',   endLabel   || '');
+        fd.append('step',        routeData ? currentStep + 1        : '');
+        fd.append('total_steps', routeData ? routeData.path.length  : '');
+        fd.append('context', 'strona trasy');
+        var res = await fetch('/report', { method: 'POST', body: fd });
+        if (res.ok) {
+          recordReportSubmit(); closeModal('reportModal'); alert('Dziękujemy za zgłoszenie!');
+        } else {
+          var j = await res.json().catch(function() { return {}; });
+          errEl.textContent = j.error || 'Błąd wysyłania.'; errEl.style.display = 'block'; buildCaptcha();
+        }
+      } catch(e) {
+        errEl.textContent = 'Błąd połączenia.'; errEl.style.display = 'block'; buildCaptcha();
+      } finally {
+        btn.disabled = false; btn.textContent = 'Wyślij zgłoszenie';
+      }
+    }
+
+    // ===== TRASA =====
+    async function loadRoute() {
+      var params = new URLSearchParams(window.location.search);
+      var start = params.get('start');
+      var end   = params.get('end');
+      endLabel   = params.get('end_label')   || end;
+      startLabel = params.get('start_label') || start;
+      var avoidStairs   = params.get('avoid_stairs')   === 'true';
+      var avoidElevator = params.get('avoid_elevator') === 'true';
+      routeParams = { start: start, end: end };
+
+      if (!start || !end) {
+        document.getElementById('content').innerHTML = '<div class="error">Brak parametrów trasy</div>'; return;
+      }
+      try {
+        var res = await fetch('/find_route?start=' + encodeURIComponent(start) +
+          '&end=' + encodeURIComponent(end) +
+          '&avoid_stairs=' + avoidStairs + '&avoid_elevator=' + avoidElevator);
+        var data = await res.json();
+        if (!res.ok) {
+          document.getElementById('content').innerHTML =
+            '<div class="error">' + (data.error || 'Błąd wyszukiwania trasy') + '</div>'; return;
+        }
+        routeData = data;
+        document.getElementById('destination').textContent = 'Do: ' + endLabel;
+        history.replaceState({ route: 'loaded' }, '', window.location.href);
+        renderStep();
+      } catch(e) {
+        document.getElementById('content').innerHTML =
+          '<div class="error">Wystąpił błąd podczas ładowania trasy</div>';
+      }
+    }
+
+    async function loadStepImage(idx) {
+      if (!routeData || !routeData.path[idx]) return null;
+      var step = routeData.path[idx];
+      var from = step.image_from || step.from;
+      var to   = step.image_to   || step.to;
+      try {
+        var res = await fetch('/connection_image?from=' + encodeURIComponent(from) + '&to=' + encodeURIComponent(to));
+        if (res.ok) { var blob = await res.blob(); return URL.createObjectURL(blob); }
+      } catch(e) {}
+      return null;
+    }
+
+    async function renderStep() {
+      if (!routeData) return;
+      var total = routeData.path.length;
+      var step  = routeData.path[currentStep];
+      var pct   = ((currentStep + 1) / total) * 100;
+      document.getElementById('progressFill').style.width = pct + '%';
+      document.getElementById('progressText').textContent = 'Krok ' + (currentStep + 1) + ' z ' + total;
+
+      var imageUrl = await loadStepImage(currentStep);
+      var distStr  = formatDistance(step.distance);
+      var toLabel  = currentStep === total - 1 ? endLabel : step.to;
+
+      document.getElementById('content').innerHTML =
+        '<div class="step-image ' + (imageUrl ? '' : 'no-photo') + '">' +
+          (imageUrl ? '<img src="' + imageUrl + '" alt="Zdjęcie trasy">' : 'Brak zdjęcia') +
+        '</div>' +
+        '<div class="step-info">' +
+          '<div class="step-number">KROK ' + (currentStep + 1) + ' z ' + total + '</div>' +
+          '<div class="step-instruction">' + (step.instruction || 'Idź prosto') + '</div>' +
+          '<div class="step-details">z: ' + step.from + '</div>' +
+          '<div class="step-details">do: ' + toLabel + '</div>' +
+          '<div class="step-distance">dystans: ' + distStr + '</div>' +
+        '</div>' +
+        '<div class="navigation-buttons">' +
+          '<button class="nav-btn prev-btn" onclick="prevStep()" ' + (currentStep === 0 ? 'disabled' : '') + '>← Poprzedni</button>' +
+          (currentStep < total - 1
+            ? '<button class="nav-btn next-btn" onclick="nextStep()">Następny →</button>'
+            : '<button class="nav-btn finish-btn" onclick="finishRoute()">Zakończ ✓</button>') +
+        '</div>' +
+        '<button class="show-all-btn" onclick="showAllSteps()">Pokaż całą trasę</button>';
+    }
+
+    function renderAllStepsList() {
+      if (!routeData) return;
+      document.getElementById('allStepsList').innerHTML = routeData.path.map(function(step, i) {
+        var cls = i < currentStep ? 'completed' : (i === currentStep ? 'current' : '');
+        return '<div class="step-card ' + cls + '">' +
+          '<div style="font-weight:600;color:#667eea;margin-bottom:5px;">' + (i+1) + '. ' + (step.instruction || 'Idź prosto') + '</div>' +
+          '<div style="font-size:14px;color:#666;">' + step.from + ' → ' + step.to + ' (' + formatDistance(step.distance) + ')</div>' +
+          '</div>';
+      }).join('');
+    }
+
+    function nextStep()    { if (currentStep < routeData.path.length - 1) { currentStep++; renderStep(); } }
+    function prevStep()    { if (currentStep > 0) { currentStep--; renderStep(); } }
+    function finishRoute() { alert('Gratulacje! Dotarłeś do celu!'); window.location.replace('/'); }
+
+    loadRoute();
+  </script>
+</body>
+</html>

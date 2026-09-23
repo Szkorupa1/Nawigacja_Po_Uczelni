@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Nawigacja po Uczelni</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px 20px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      width: 100%;
+      max-width: 600px;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; padding: 30px 20px; text-align: center;
+    }
+    .header h1 { font-size: 28px; margin-bottom: 5px; }
+    .header p { opacity: 0.9; font-size: 14px; }
+    .content { padding: 30px 20px; }
+    .form-group { margin-bottom: 20px; }
+    label { display: block; font-weight: 600; margin-bottom: 8px; color: #333; font-size: 14px; }
+
+    .custom-select { position: relative; width: 100%; }
+    .custom-select input {
+      width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0;
+      border-radius: 10px; font-size: 16px; font-family: inherit;
+    }
+    .custom-select input:focus { border-color: #667eea; outline: none; }
+    .custom-select .options {
+      position: absolute; width: 100%; max-height: 200px; overflow-y: auto;
+      background: white; border: 2px solid #e0e0e0; border-radius: 10px;
+      margin-top: 2px; display: none; z-index: 100;
+    }
+    .custom-select .option { padding: 10px; cursor: pointer; }
+    .custom-select .option:hover { background: #f0f0f0; }
+
+    .options-container {
+      background: #f8f9fa; padding: 15px; border-radius: 12px; margin-bottom: 20px;
+    }
+    .option-label { display: flex; align-items: center; padding: 10px 0; cursor: pointer; user-select: none; }
+    .option-label input[type="checkbox"] { width: 20px; height: 20px; margin-right: 12px; cursor: pointer; accent-color: #667eea; }
+
+    .find-route-btn {
+      width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; border: none; padding: 16px; border-radius: 12px;
+      font-size: 18px; font-weight: 600; cursor: pointer; transition: all 0.3s;
+      box-shadow: 0 5px 15px rgba(102,126,234,0.3);
+    }
+    .find-route-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(102,126,234,0.4); }
+    .find-route-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .route-result { margin-top: 20px; display: none; }
+    .error { background: #fee; color: #c33; padding: 15px; border-radius: 10px; border-left: 4px solid #c33; }
+    .loading { text-align: center; padding: 20px; }
+    .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #667eea; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    /* Przycisk zgłoszenia — POZA białym boxem, na dole strony */
+    .report-footer {
+      margin-top: 16px;
+      width: 100%;
+      max-width: 600px;
+      text-align: center;
+    }
+    .report-footer button {
+      background: none; border: none; color: rgba(255,255,255,0.45);
+      font-size: 13px; cursor: pointer; font-family: inherit;
+      padding: 8px 16px; transition: color 0.2s; letter-spacing: 0.2px;
+    }
+    .report-footer button:hover { color: rgba(255,255,255,0.85); }
+
+    /* ===== MODAL ===== */
+    .modal {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65); z-index: 1000;
+      padding: 16px; align-items: center; justify-content: center;
+    }
+    .modal.active { display: flex; }
+    .modal-box {
+      background: white; border-radius: 20px; padding: 26px 22px;
+      max-width: 460px; width: 100%; max-height: 90vh; overflow-y: auto;
+    }
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;
+    }
+    .modal-header h2 { font-size: 20px; color: #333; }
+    .close-modal {
+      background: none; border: none; font-size: 28px; color: #aaa;
+      cursor: pointer; width: 36px; height: 36px; border-radius: 50%; transition: all 0.2s;
+    }
+    .close-modal:hover { background: #f0f0f0; color: #333; }
+
+    .modal-box textarea {
+      width: 100%; min-height: 85px; padding: 12px;
+      border: 2px solid #e0e0e0; border-radius: 10px;
+      font-family: inherit; font-size: 15px; resize: vertical; margin-bottom: 14px;
+    }
+    .modal-box textarea:focus { border-color: #667eea; outline: none; }
+
+    /* ===== CAPTCHA reCAPTCHA-style ===== */
+    .rc-box {
+      border: 1px solid #d3d3d3; border-radius: 4px; background: #f9f9f9;
+      padding: 12px 14px; display: flex; align-items: center; gap: 12px;
+      margin-bottom: 14px; cursor: pointer; user-select: none;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .rc-checkbox {
+      width: 24px; height: 24px; border: 2px solid #c1c1c1; border-radius: 3px;
+      flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+      background: white; transition: all 0.2s;
+    }
+    .rc-label { font-size: 14px; color: #333; flex: 1; }
+    .rc-brand { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .rc-brand svg { opacity: 0.9; }
+    .rc-brand-name { font-size: 9px; color: #4A90D9; font-weight: 600; letter-spacing: 0.4px; }
+    .rc-brand-links { font-size: 7px; color: #999; }
+    .rc-challenge {
+      border: 1px solid #d3d3d3; border-radius: 4px; overflow: hidden;
+      margin-bottom: 14px; display: none; box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    }
+    .rc-challenge-header {
+      background: #4A90D9; padding: 10px 14px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .rc-challenge-header span { color: white; font-size: 13px; font-weight: 500; }
+    .rc-challenge-header button {
+      background: rgba(255,255,255,0.2); border: none; color: white;
+      border-radius: 3px; padding: 3px 8px; font-size: 12px; cursor: pointer;
+    }
+    .rc-grid {
+      display: grid; grid-template-columns: repeat(4,1fr); gap: 2px;
+      background: #ccc; padding: 2px;
+    }
+    .rc-cell {
+      background: white; aspect-ratio: 1; display: flex; align-items: center;
+      justify-content: center; font-size: 28px; cursor: pointer; position: relative;
+      transition: background 0.12s;
+    }
+    .rc-cell:hover { background: #f0f4ff; }
+    .rc-cell.sel { background: #e3ecfb; }
+    .rc-cell-tick {
+      position: absolute; bottom: 3px; right: 3px; width: 17px; height: 17px;
+      background: #4A90D9; border-radius: 50%; display: none;
+      align-items: center; justify-content: center;
+    }
+    .rc-cell.sel .rc-cell-tick { display: flex; }
+    .rc-footer {
+      padding: 8px 12px; display: flex; align-items: center;
+      justify-content: space-between; background: #f9f9f9;
+      border-top: 1px solid #e8e8e8;
+    }
+    .rc-footer-brand { display: flex; align-items: center; gap: 6px; }
+    .rc-verify-btn {
+      background: #4A90D9; color: white; border: none; border-radius: 3px;
+      padding: 7px 16px; font-size: 13px; font-weight: 500; cursor: pointer;
+      opacity: 0.45; transition: opacity 0.15s;
+    }
+    .rc-verify-btn:not(:disabled) { opacity: 1; }
+    .rc-verify-btn:disabled { cursor: default; }
+
+    .modal-error { color: #c33; font-size: 13px; margin-bottom: 10px; display: none; }
+    .modal-submit {
+      width: 100%; padding: 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; border: none; border-radius: 10px;
+      font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .modal-submit:hover { transform: translateY(-1px); box-shadow: 0 5px 15px rgba(102,126,234,0.4); }
+    .modal-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>Nawigacja Uczelnia</h1>
+    <p>Znajdź najlepszą trasę do swojego celu</p>
+  </div>
+  <div class="content">
+    <div class="form-group">
+      <label>Punkt startowy</label>
+      <div class="custom-select">
+        <input type="text" id="startRoomSearch" placeholder="Szukaj pokoju...">
+        <div class="options" id="startRoomOptions"></div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Punkt docelowy</label>
+      <div class="custom-select">
+        <input type="text" id="endRoomSearch" placeholder="Szukaj pokoju...">
+        <div class="options" id="endRoomOptions"></div>
+      </div>
+    </div>
+    <div class="options-container">
+      <label class="option-label">
+        <input type="checkbox" id="avoidStairs"><span>Omiń schody</span>
+      </label>
+      <label class="option-label">
+        <input type="checkbox" id="avoidElevator"><span>Omiń windy</span>
+      </label>
+    </div>
+    <button class="find-route-btn" id="findRouteBtn">Znajdź trasę</button>
+    <div id="routeResult" class="route-result"></div>
+  </div>
+</div>
+
+<!-- Przycisk zgłoszenia POZA białym boxem -->
+<div class="report-footer">
+  <button onclick="openReport()">⚑ Zgłoś błąd lub problem z aplikacją</button>
+</div>
+
+<!-- Modal zgłoszenia -->
+<div class="modal" id="reportModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>Zgłoś problem</h2>
+      <button class="close-modal" onclick="closeReport()">×</button>
+    </div>
+    <p style="font-size:13px;color:#888;margin-bottom:14px;">Opisz problem z wyszukiwaniem trasy lub działaniem aplikacji.</p>
+    <textarea id="reportText" placeholder="Opisz problem..." maxlength="1000"></textarea>
+
+    <!-- Captcha reCAPTCHA-style -->
+    <div class="rc-box" id="rcBox" onclick="rcStart()">
+      <div class="rc-checkbox" id="rcCheckbox"></div>
+      <span class="rc-label">Nie jestem robotem</span>
+      <div class="rc-brand">
+        <svg width="32" height="32" viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="#4A90D9"/><path d="M28 16 C23 17 19 21 18 26 C17 31 19 36 23 39 C27 42 33 43 38 41 C42 39 46 35 47 30 C48 26 46 22 44 20" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M28 16 L38 14 L34 24" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="rc-brand-name">reCAPTCHA</span>
+        <span class="rc-brand-links">Prywatność · Warunki</span>
+      </div>
+    </div>
+
+    <div class="rc-challenge" id="rcChallenge">
+      <div class="rc-challenge-header">
+        <span id="rcTitle">Zaznacz wszystkie kwadraty</span>
+        <button onclick="rcBuild()">↺</button>
+      </div>
+      <div class="rc-grid" id="rcGrid"></div>
+      <div class="rc-footer">
+        <div class="rc-footer-brand">
+          <svg width="26" height="26" viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="#4A90D9"/><path d="M28 16 C23 17 19 21 18 26 C17 31 19 36 23 39 C27 42 33 43 38 41 C42 39 46 35 47 30 C48 26 46 22 44 20" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M28 16 L38 14 L34 24" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div><div class="rc-brand-name">reCAPTCHA</div><div class="rc-brand-links">Prywatność · Warunki</div></div>
+        </div>
+        <button class="rc-verify-btn" id="rcVerifyBtn" disabled onclick="rcVerify()">Weryfikuj</button>
+      </div>
+    </div>
+
+    <div class="modal-error" id="reportError"></div>
+    <button class="modal-submit" id="reportSubmitBtn" onclick="submitReport()">Wyślij zgłoszenie</button>
+  </div>
+</div>
+
+<script>
+  // ===== FIX SPINNERA =====
+  window.addEventListener('pageshow', function() {
+    var r = document.getElementById('routeResult');
+    if (r) { r.style.display = 'none'; r.innerHTML = ''; }
+  });
+
+  // ===== reCAPTCHA-style captcha =====
+  var CATS = [
+    {label:'zwierzęta', items:['🐶','🐱','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🦄','🐺'], decoys:['🌸','🍎','🚗','⚽','🏠','🎸','🌊','🍕','🌲','🎃']},
+    {label:'owoce',     items:['🍎','🍊','🍋','🍇','🍓','🍑','🍒','🥭','🍍','🥝','🍈','🍌','🍏','🍐','🫐'], decoys:['🐶','🚗','🏠','⚽','🎸','🌸','🌊','🍕','🌲','🎃']},
+    {label:'pojazdy',   items:['🚗','🚕','🚙','🚌','🏎','🚓','🚑','🚒','🚐','🚜','🛻','🚛','🏍','🛵','🚲'], decoys:['🍎','🐶','🌸','⚽','🏠','🎸','🌊','🍕','🌲','🎃']},
+    {label:'jedzenie',  items:['🍕','🍔','🌮','🍜','🍣','🍩','🍦','🧁','🍰','🥗','🥪','🌭','🥨','🍱','🥞'], decoys:['🐶','🚗','⚽','🌸','🏠','🎸','🌊','🍎','🌲','🎃']},
+  ];
+  var rcCorrect = [], rcSelected = [], rcVerified = false;
+
+  function rcShuffle(a){var b=a.slice();for(var i=b.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=b[i];b[i]=b[j];b[j]=t;}return b;}
+
+  function rcStart(){
+    if(rcVerified) return;
+    var cb = document.getElementById('rcCheckbox');
+    cb.style.borderColor = '#4A90D9';
+    cb.innerHTML = '<svg width="13" height="13" viewBox="0 0 13 13"><path d="M2 6.5 l3 3 l6-6" stroke="#4A90D9" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    document.getElementById('rcChallenge').style.display = 'block';
+    rcBuild();
+  }
+
+  function rcBuild(){
+    var cat = CATS[Math.floor(Math.random()*CATS.length)];
+    document.getElementById('rcTitle').textContent = 'Wybierz wszystkie kwadraty: ' + cat.label;
+    var correct = rcShuffle(cat.items).slice(0,4);
+    var decoys  = rcShuffle(cat.decoys).slice(0,4);
+    var all     = rcShuffle(correct.concat(decoys));
+    rcCorrect = []; rcSelected = [];
+    document.getElementById('rcVerifyBtn').disabled = true;
+
+    var grid = document.getElementById('rcGrid');
+    grid.innerHTML = '';
+    all.forEach(function(emoji, idx){
+      var cell = document.createElement('div');
+      cell.className = 'rc-cell';
+      cell.textContent = emoji;
+      if(correct.indexOf(emoji) !== -1) rcCorrect.push(idx);
+
+      var tick = document.createElement('div');
+      tick.className = 'rc-cell-tick';
+      tick.innerHTML = '<svg width="9" height="9" viewBox="0 0 9 9"><path d="M1.5 4.5 l2 2 l4-4" stroke="white" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      cell.appendChild(tick);
+
+      cell.addEventListener('click', function(){
+        var i = rcSelected.indexOf(idx);
+        if(i===-1){ rcSelected.push(idx); cell.classList.add('sel'); }
+        else { rcSelected.splice(i,1); cell.classList.remove('sel'); }
+        document.getElementById('rcVerifyBtn').disabled = rcSelected.length === 0;
+      });
+      grid.appendChild(cell);
+    });
+  }
+
+  function rcVerify(){
+    var ok = rcSelected.slice().sort().join(',') === rcCorrect.slice().sort().join(',');
+    if(ok){
+      rcVerified = true;
+      document.getElementById('rcChallenge').style.display = 'none';
+      var cb = document.getElementById('rcCheckbox');
+      cb.style.borderColor = '#4A90D9';
+      cb.style.background = '#4A90D9';
+      cb.innerHTML = '<svg width="13" height="13" viewBox="0 0 13 13"><path d="M2 6.5 l3 3 l6-6" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      document.getElementById('rcBox').style.cursor = 'default';
+    } else {
+      var err = document.getElementById('reportError');
+      err.textContent = 'Nieprawidłowy wybór. Spróbuj ponownie.';
+      err.style.display = 'block';
+      setTimeout(function(){ err.style.display='none'; rcBuild(); }, 1400);
+    }
+  }
+
+  // ===== MODAL =====
+  function openReport() {
+    rcVerified = false;
+    var cb = document.getElementById('rcCheckbox');
+    cb.style.borderColor = '#c1c1c1'; cb.style.background = 'white'; cb.innerHTML = '';
+    document.getElementById('rcBox').style.cursor = 'pointer';
+    document.getElementById('rcChallenge').style.display = 'none';
+    document.getElementById('reportText').value = '';
+    document.getElementById('reportError').style.display = 'none';
+    document.getElementById('reportModal').classList.add('active');
+  }
+  function closeReport() {
+    document.getElementById('reportModal').classList.remove('active');
+  }
+
+  // Rate limit klienta
+  var REPORT_KEY = 'report_times';
+  function canSubmitReport() {
+    var now = Date.now();
+    var times = JSON.parse(sessionStorage.getItem(REPORT_KEY) || '[]')
+      .filter(function(t) { return now - t < 10 * 60 * 1000; });
+    return times.length < 3;
+  }
+  function recordReportSubmit() {
+    var now = Date.now();
+    var times = JSON.parse(sessionStorage.getItem(REPORT_KEY) || '[]')
+      .filter(function(t) { return now - t < 10 * 60 * 1000; });
+    times.push(now);
+    sessionStorage.setItem(REPORT_KEY, JSON.stringify(times));
+  }
+
+  async function submitReport() {
+    var text = document.getElementById('reportText').value.trim();
+    var errEl = document.getElementById('reportError');
+    errEl.style.display = 'none';
+
+    if (!text) {
+      errEl.textContent = 'Wpisz treść zgłoszenia.';
+      errEl.style.display = 'block'; return;
+    }
+    if (text.length > 1000) {
+      errEl.textContent = 'Maksymalnie 1000 znaków.';
+      errEl.style.display = 'block'; return;
+    }
+    if (!rcVerified) {
+      errEl.textContent = 'Potwierdź że nie jesteś robotem.';
+      errEl.style.display = 'block'; return;
+    }
+    if (!canSubmitReport()) {
+      errEl.textContent = 'Zbyt wiele zgłoszeń. Poczekaj chwilę i spróbuj ponownie.';
+      errEl.style.display = 'block'; return;
+    }
+
+    var btn = document.getElementById('reportSubmitBtn');
+    btn.disabled = true; btn.textContent = 'Wysyłanie...';
+
+    try {
+      var fd = new FormData();
+      fd.append('message', text);
+      fd.append('start', '');
+      fd.append('end', '');
+      fd.append('context', 'strona główna');
+      var res = await fetch('/report', { method: 'POST', body: fd });
+      if (res.ok) {
+        recordReportSubmit();
+        closeReport();
+        alert('Dziękujemy za zgłoszenie!');
+      } else {
+        var j = await res.json().catch(function() { return {}; });
+        errEl.textContent = j.error || 'Błąd wysyłania. Spróbuj ponownie.';
+        errEl.style.display = 'block';
+        buildCaptcha();
+      }
+    } catch(e) {
+      errEl.textContent = 'Błąd połączenia. Spróbuj ponownie.';
+      errEl.style.display = 'block';
+      buildCaptcha();
+    } finally {
+      btn.disabled = false; btn.textContent = 'Wyślij zgłoszenie';
+    }
+  }
+
+  // ===== POKOJE =====
+  function formatLabel(room) {
+    if (!room) return '';
+    var base = room.name.replace(/\s*p\.\d+$/i, '').trim();
+    if (room.floor && room.floor !== '0') return base + ' (Piętro ' + room.floor + ')';
+    return base;
+  }
+
+  function getQueryParam(name) {
+    return new URLSearchParams(window.location.search).get(name);
+  }
+
+  async function loadRooms() {
+    try {
+      var res = await fetch('/rooms_active');
+      var rooms = await res.json();
+      var visible = rooms.filter(function(r) { return r.type !== 'corridor'; });
+
+      var startInput   = document.getElementById('startRoomSearch');
+      var startOptions = document.getElementById('startRoomOptions');
+      var endInput     = document.getElementById('endRoomSearch');
+      var endOptions   = document.getElementById('endRoomOptions');
+
+      var qr = getQueryParam('start');
+      if (qr) {
+        var found = visible.find(function(r) { return r.name === qr; });
+        if (found) { startInput.value = formatLabel(found); startInput.dataset.roomName = found.name; }
+      }
+
+      function populate(inp, box) {
+        box.innerHTML = '';
+        visible.forEach(function(r) {
+          var div = document.createElement('div');
+          div.className = 'option';
+          var lbl = formatLabel(r);
+          div.textContent = lbl;
+          div.addEventListener('click', function() {
+            inp.value = lbl; inp.dataset.roomName = r.name; box.style.display = 'none';
+          });
+          box.appendChild(div);
+        });
+        inp.addEventListener('input', function() {
+          var f = inp.value.toLowerCase();
+          box.querySelectorAll('.option').forEach(function(o) {
+            o.style.display = o.textContent.toLowerCase().includes(f) ? '' : 'none';
+          });
+        });
+        inp.addEventListener('focus', function() { box.style.display = 'block'; });
+        document.addEventListener('click', function(e) {
+          if (!inp.contains(e.target) && !box.contains(e.target)) box.style.display = 'none';
+        });
+      }
+
+      populate(startInput, startOptions);
+      populate(endInput,   endOptions);
+    } catch(e) { console.error(e); }
+  }
+
+  loadRooms();
+
+  // ===== ZNAJDŹ TRASĘ =====
+  document.getElementById('findRouteBtn').addEventListener('click', async function() {
+    var si = document.getElementById('startRoomSearch');
+    var ei = document.getElementById('endRoomSearch');
+    var sv = si.dataset.roomName || si.value;
+    var ev = ei.dataset.roomName || ei.value;
+    var sl = si.value, el = ei.value;
+    var avS = document.getElementById('avoidStairs').checked;
+    var avE = document.getElementById('avoidElevator').checked;
+    var rd  = document.getElementById('routeResult');
+
+    if (!sv || !ev) {
+      rd.innerHTML = '<div class="error">Wybierz punkt startowy i docelowy</div>';
+      rd.style.display = 'block'; return;
+    }
+    if (sv === ev) {
+      rd.innerHTML = '<div class="error">Punkt startowy i docelowy są takie same</div>';
+      rd.style.display = 'block'; return;
+    }
+
+    rd.innerHTML = '<div class="loading"><div class="spinner"></div><p style="margin-top:15px;color:#666;">Szukam najlepszej trasy...</p></div>';
+    rd.style.display = 'block';
+
+    try {
+      var params = new URLSearchParams({ start: sv, end: ev, start_label: sl, end_label: el, avoid_stairs: avS, avoid_elevator: avE });
+      var res = await fetch('/find_route?' + params);
+      var data = await res.json();
+      if (!res.ok) { rd.innerHTML = '<div class="error">' + (data.error || 'Nie znaleziono trasy') + '</div>'; return; }
+      window.location.href = '/route?' + params;
+    } catch(e) {
+      rd.innerHTML = '<div class="error">Błąd podczas wyszukiwania trasy</div>';
+    }
+  });
+</script>
+</body>
+</html>
